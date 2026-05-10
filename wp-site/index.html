@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>أبوبكر · AboBakr — Creative Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/extras.css">
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="assets/js/data.js"></script>
+<script type="text/babel" src="assets/js/lib.jsx"></script>
+<script type="text/babel" src="assets/js/tweaks-panel.jsx"></script>
+<script type="text/babel" src="assets/js/shell.jsx"></script>
+<script type="text/babel" src="assets/js/home.jsx"></script>
+<script type="text/babel" src="assets/js/about-process.jsx"></script>
+<script type="text/babel" src="assets/js/portfolio-gallery.jsx"></script>
+<script type="text/babel" src="assets/js/shop-pages.jsx"></script>
+<script type="text/babel" src="assets/js/extras.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "#C8A96E",
+  "palette": [
+    "#C8A96E",
+    "#080808",
+    "#EDEAE4"
+  ],
+  "density": "compact",
+  "showCursor": true,
+  "showSound": false,
+  "showWhatsApp": true,
+  "fontSize": 18,
+  "heroStyle": "reel",
+  "cardCorners": "round"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [lang, setLang] = useState('ar');
+  const [theme, setTheme] = useState('dark');
+  const [page, setPage] = useState('home');
+  const [openProjectId, setOpenProjectId] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [curtain, setCurtain] = useState('idle');
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
+  const [lightbox, setLightbox] = useState({ open: false, items: [], index: 0 });
+  const [quickView, setQuickView] = useState({ open: false, item: null, type: null });
+  const [toast, setToast] = useState('');
+  const sound = useSound(soundOn);
+
+  // Apply lang/dir to <html>
+  useEffect(() => {
+    document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [lang]);
+
+  // Apply theme
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  // Apply tweaks (accent + density + corners + fontSize)
+  useEffect(() => {
+    const r = document.documentElement;
+    r.style.setProperty('--clr-accent', tweaks.accent);
+    r.style.fontSize = tweaks.fontSize + 'px';
+    r.dataset.density = tweaks.density;
+    r.dataset.corners = tweaks.cardCorners;
+  }, [tweaks]);
+
+  // Page transition
+  const navigate = (next, opts = {}) => {
+    if (next === page && !opts.force) return;
+    setCurtain('out');
+    setTimeout(() => {
+      if (opts.projectId) setOpenProjectId(opts.projectId);
+      setPage(next);
+      window.scrollTo(0, 0);
+      setCurtain('in');
+      setTimeout(() => setCurtain('idle'), 700);
+    }, 500);
+    if (soundOn) sound.click();
+  };
+  const openProject = (id) => navigate('single-portfolio', { projectId: id });
+
+  // Reveal observer (re-runs on page change)
+  useEffect(() => {
+    const els = document.querySelectorAll('.reveal:not(.in)');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [page, openProjectId]);
+
+  // Cart
+  const addToCart = (p) => {
+    setCart((c) => [...c, p]);
+    if (soundOn) sound.click();
+    setToast(lang === 'ar' ? `أُضيف «${p.titleAr}» للسلة` : `Added "${p.titleEn}" to cart`);
+    setTimeout(() => setToast(''), 2200);
+  };
+  const openQuickView = (item, type) => setQuickView({ open: true, item, type });
+  const closeQuickView = () => setQuickView((q) => ({ ...q, open: false }));
+
+  // Lightbox helpers
+  const openLightbox = (items, index) => setLightbox({ open: true, items, index });
+  const closeLightbox = () => setLightbox((l) => ({ ...l, open: false }));
+  const lbPrev = () => setLightbox((l) => ({ ...l, index: (l.index - 1 + l.items.length) % l.items.length }));
+  const lbNext = () => setLightbox((l) => ({ ...l, index: (l.index + 1) % l.items.length }));
+
+  // Keyboard: cmd+k for search
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault(); setSearchOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const renderPage = () => {
+    switch (page) {
+      case 'home': return <HomePage lang={lang} setPage={navigate} openProject={openProject} addToCart={addToCart} openQuickView={openQuickView} openLightbox={openLightbox} soundOn={soundOn} sound={sound} />;
+      case 'portfolio': return <PortfolioArchive lang={lang} openProject={openProject} openQuickView={openQuickView} />;
+      case 'single-portfolio': return <SingleProjectPage id={openProjectId} lang={lang} setPage={navigate} openLightbox={openLightbox} />;
+      case 'gallery': return <GalleryPage lang={lang} openLightbox={openLightbox} />;
+      case 'videos': return <VideosPage lang={lang} openQuickView={openQuickView} />;
+      case 'shop': return <ShopPage lang={lang} addToCart={addToCart} cartCount={cart.length} openQuickView={openQuickView} />;
+      case 'order': return <OrderPage lang={lang} />;
+      case 'about': return <AboutPage lang={lang} setPage={navigate} />;
+      case 'contact': return <ContactPage lang={lang} />;
+      default: return <HomePage lang={lang} setPage={navigate} openProject={openProject} addToCart={addToCart} soundOn={soundOn} sound={sound} />;
+    }
+  };
+
+  return (
+    <SiteProvider value={{ lang, setLang, theme, setTheme, soundOn, sound }}>
+      {tweaks.showCursor && <CustomCursor />}
+      <Header page={page} setPage={navigate} lang={lang} setLang={setLang} theme={theme} setTheme={setTheme} openSearch={() => setSearchOpen(true)} cartCount={cart.length} openCart={() => setCartOpen(true)} />
+      <PageCurtain phase={curtain} lang={lang} />
+      <div key={page + ':' + openProjectId}>
+        {renderPage()}
+      </div>
+      <Footer lang={lang} setPage={navigate} />
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} lang={lang} setPage={navigate} openProject={openProject} />
+      {tweaks.showWhatsApp && <WhatsAppWidget lang={lang} />}
+      <Lightbox open={lightbox.open} items={lightbox.items} index={lightbox.index} onClose={closeLightbox} onPrev={lbPrev} onNext={lbNext} lang={lang} />
+      <QuickView open={quickView.open} item={quickView.item} type={quickView.type} lang={lang}
+        onClose={closeQuickView}
+        onOpenFull={() => {
+          const t = quickView.type; const it = quickView.item;
+          closeQuickView();
+          setTimeout(() => {
+            if (t === 'project') openProject(it.id);
+            else if (t === 'video') navigate('videos');
+            else if (t === 'product') navigate('shop');
+          }, 350);
+        }}
+        onAddCart={addToCart} />
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} cart={cart} setCart={setCart} lang={lang} setPage={navigate} />
+      <Toast toast={toast} />
+      <SoundToggle soundOn={soundOn} setSoundOn={setSoundOn} lang={lang} />
+
+      <TweaksPanel>
+        <TweakSection label={lang === 'ar' ? 'الهوية' : 'Identity'} />
+        <TweakColor label={lang === 'ar' ? 'لون التمييز' : 'Accent'} value={tweaks.accent}
+          options={['#C8A96E', '#D97757', '#7C9885', '#5B9BD5', '#B87CB8']}
+          onChange={(v) => setTweak('accent', v)} />
+        <TweakRadio label={lang === 'ar' ? 'زوايا الكروت' : 'Card corners'} value={tweaks.cardCorners}
+          options={['hard', 'soft', 'round']}
+          onChange={(v) => setTweak('cardCorners', v)} />
+        <TweakSlider label={lang === 'ar' ? 'حجم الخط' : 'Font size'} value={tweaks.fontSize} min={14} max={20} unit="px"
+          onChange={(v) => setTweak('fontSize', v)} />
+        <TweakRadio label={lang === 'ar' ? 'الكثافة' : 'Density'} value={tweaks.density}
+          options={['compact', 'regular', 'comfy']}
+          onChange={(v) => setTweak('density', v)} />
+
+        <TweakSection label={lang === 'ar' ? 'الواجهة' : 'Interface'} />
+        <TweakToggle label={lang === 'ar' ? 'مؤشر مخصص' : 'Custom cursor'} value={tweaks.showCursor}
+          onChange={(v) => setTweak('showCursor', v)} />
+        <TweakToggle label={lang === 'ar' ? 'ودجت واتساب' : 'WhatsApp widget'} value={tweaks.showWhatsApp}
+          onChange={(v) => setTweak('showWhatsApp', v)} />
+        <TweakToggle label={lang === 'ar' ? 'صوت تفاعلي' : 'UI sound'} value={soundOn}
+          onChange={(v) => setSoundOn(v)} />
+      </TweaksPanel>
+    </SiteProvider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
