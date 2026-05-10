@@ -1,38 +1,27 @@
 ```
-# WordPress theme specific ignores
-*.log
-*.tmp
-*.swp
-
-# Environment files
-.env
-.env.local
-.env.*
-
 # Dependencies
 node_modules/
-vendor/
 
 # Build artifacts
 dist/
 build/
-*.min.css
 *.min.js
-*.map
+*.min.css
 
-# Cache and temporary files
-.cache/
-*.cache
-Thumbs.db
-.DS_Store
+# Logs and temp files
+*.log
+*.tmp
 
-# IDE files
+# Environment
+.env
+.env.local
+.env.*
+
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# WordPress specific
-wp-content/cache/
-*.sql
+# OS generated files
+.DS_Store
+Thumbs.db
 ```
